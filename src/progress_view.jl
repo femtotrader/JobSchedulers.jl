@@ -164,7 +164,12 @@ function queue_progress(stdout_tmp::IO, stderr_tmp::IO;
             Base.flush(stdout_tmp)
             Base.flush(stderr_tmp)
 
-            queue_update = trytake!(SCHEDULER_PROGRESS_ACTION) !== nothing
+            queue_update = if isready(SCHEDULER_PROGRESS_ACTION[])
+                take!(SCHEDULER_PROGRESS_ACTION[])
+                true
+            else
+                false
+            end
 
             h, w = Terming.displaysize()
 

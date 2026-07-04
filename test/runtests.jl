@@ -9,14 +9,8 @@ scheduler_balance_check(title::String) = @testset "Balance check after $title" b
 	@test scheduler_status() === RUNNING
 	
 	@test JobSchedulers.RESOURCE.njob == 0
-	@test JobSchedulers.THREAD_POOL[].n_filled[] == length(JobSchedulers.TIDS)
-	thread_pool_set = Set{Int}()
-	for cell in JobSchedulers.THREAD_POOL[].cells
-		if cell.state[] == 1
-			push!(thread_pool_set, cell.value[])
-		end
-	end
-	@test thread_pool_set == Set(JobSchedulers.TIDS)
+	@test length(JobSchedulers.THREAD_POOL[].data) == length(JobSchedulers.TIDS)
+	@test Set(JobSchedulers.THREAD_POOL[].data) == Set(JobSchedulers.TIDS)
 end
 
 @testset "JobSchedulers" begin

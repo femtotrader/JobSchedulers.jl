@@ -28,8 +28,8 @@ end
 
 SLEEP_HANDELED_TIME::Int = 10
 
-const SCHEDULER_ACTION = AtomicChannel{Int, true}(1)
-const SCHEDULER_PROGRESS_ACTION = AtomicChannel{Int, true}(1)
+const SCHEDULER_ACTION = Base.RefValue{Channel{Int}}()
+const SCHEDULER_PROGRESS_ACTION = Base.RefValue{Channel{Int}}()
 
 """
 Generation counter incremented each time any job changes state (running, done, failed, or
@@ -45,17 +45,16 @@ end
 function scheduler_need_action()
     global SCHEDULER_ACTION
 
-    # isready(SCHEDULER_ACTION) && return  # isready means already ready for action
+    isready(SCHEDULER_ACTION[]) && return  # isready means already ready for action
 
-    tryput!(SCHEDULER_ACTION, 1)
-
-    # if !isready(SCHEDULER_ACTION) # will take action, no need to repeat
-        # put!(SCHEDULER_ACTION, 1)
-    # end
-
-    if (PROGRESS_METER || PROGRESS_WAIT)
-        tryput!(SCHEDULER_PROGRESS_ACTION, 1)
+    if !isready(SCHEDULER_ACTION[]) # will take action, no need to repeat
+        put!(SCHEDULER_ACTION[], 1)
     end
+
+    # put!(SCHEDULER_PROGRESS_ACTION[], 1) is called when queue is updated in `updated_queue`.
+    # if (PROGRESS_METER || PROGRESS_WAIT) && !isready(SCHEDULER_PROGRESS_ACTION[])
+    #     put!(SCHEDULER_PROGRESS_ACTION[], 1)
+    # end
 
     nothing
 end
@@ -102,10 +101,10 @@ function scheduler()
     while SCHEDULER_WHILE_LOOP
         @debug "scheduler() new loop"
         try
-            # wait(SCHEDULER_ACTION)
-            take!(SCHEDULER_ACTION)
+            wait(SCHEDULER_ACTION[])
+            take!(SCHEDULER_ACTION[])
 
-            update_queue!()  # put!(SCHEDULER_PROGRESS_ACTION, 1) is in this function.
+            update_queue!()  # put!(SCHEDULER_PROGRESS_ACTION[], 1) is in this function.
         catch ex
             # COV_EXCL_START
             if isa(ex, InterruptException)
@@ -118,12 +117,12 @@ function scheduler()
                     end
                 else
                     set_scheduler_while_loop(false)
-                    rethrow()
+                    rethrow(ex)
                 end
             else
                 @error "JobScheduler.scheduler() stopped because of an internal error." exception=(ex, catch_backtrace())  # display the error. throw(ex) will not display the error.
                 set_scheduler_while_loop(false)
-                rethrow()
+                rethrow(ex)
             end
             # COV_EXCL_STOP
         end

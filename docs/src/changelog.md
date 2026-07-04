@@ -1,5 +1,9 @@
 # Changelog
 
+v1.0.1
+
+- Eco: replace `AtomicChannel` with `Channel` because AtomicChannel uses 20% of 1 thread when idle in JobSchedulers. AtomicChannel is good in performance but not eco-friendly.
+
 v1.0.0
 
 - Breaking: replace `Channel` with `AtomicChannel` from AtomicChannels.jl

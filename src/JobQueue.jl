@@ -203,8 +203,8 @@ function update_queue!()
     free_mem = SCHEDULER_MAX_MEM - used_mem
     run_queuing!(current, free_ncpu, free_mem)
 
-    if (PROGRESS_METER || PROGRESS_WAIT) && !isready(SCHEDULER_PROGRESS_ACTION) 
-        tryput!(SCHEDULER_PROGRESS_ACTION, 1)
+    if (PROGRESS_METER || PROGRESS_WAIT) && !isready(SCHEDULER_PROGRESS_ACTION[])
+        put!(SCHEDULER_PROGRESS_ACTION[], 1)
     end
 
     # clean done and cancelled queue if exceed max_done and max_cancelled
